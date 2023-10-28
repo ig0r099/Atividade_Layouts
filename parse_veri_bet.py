@@ -1,7 +1,6 @@
 from selenium import webdriver
-from dataclasses import dataclass, asdict
 import json
-import time
+from dataclasses import dataclass
 
 @dataclass
 class Item:
@@ -15,51 +14,51 @@ class Item:
     price: str = ''
     side: str = ''
     team: str = ''
-    spread: float = 0.0
+    spread: float = 0
 
 
-driver = webdriver.Chrome()
+chrome_driver_path = r"C:\Users\corlh\Downloads\chromedriver_win32\chromedriver.exe"
 
 
-driver.get("https://veri.bet/simulator")
+options = webdriver.ChromeOptions()
+options.add_argument("--headless")  # Para executar o navegador em segundo plano, sem uma janela visível
 
 
-time.sleep(5)
+driver = webdriver.Chrome(executable_path=chrome_driver_path, options=options)
 
 
-button = driver.find_element_by_xpath("//button[contains(text(), 'Access Betting Simulator')]")
-print(button)
-
-button.click()
+driver.get("https://veri.bet/odds-picks?filter=upcoming")
 
 
-time.sleep(5)
+driver.implicitly_wait(10)
+
+
+table_rows = driver.find_elements_by_xpath("//table[@id='odds-picks']//tr")
 
 
 items = []
 
 
-example_item = Item(
-    sport_league='Basketball',
-    event_date_utc='2023-10-27T08:00:00Z',
-    team1='Team A',
-    team2='Team B',
-    pitcher='',
-    period='Full time',
-    line_type='Moneyline',
-    price='-110',
-    side='',
-    team='',
-    spread=0.0
-)
+for row in table_rows[1:]:  
+    data = row.find_elements_by_tag_name('td')
+    if len(data) == 11:  
+        item = Item(
+            sport_league=data[0].text,
+            event_date_utc=data[1].text,
+            team1=data[2].text,
+            team2=data[3].text,
+            pitcher=data[4].text,
+            period=data[5].text,
+            line_type=data[6].text,
+            price=data[7].text,
+            side=data[8].text,
+            team=data[9].text,
+            spread=float(data[10].text) if data[10].text else 0.0
+        )
+        items.append(item)
 
-items.append(example_item)
 
-
-items_dict_list = [asdict(item) for item in items]
-
-
-print(json.dumps(items_dict_list, indent=4))
+print(json.dumps([vars(item) for item in items], indent=2))
 
 
 driver.quit()
